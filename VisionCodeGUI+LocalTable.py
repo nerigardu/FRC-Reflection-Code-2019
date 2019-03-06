@@ -7,11 +7,17 @@ import cv2
 import numpy
 import os
 
-# Note:
-# Coordinates of BoundingRect are based off of Quadrant IV (+ Bottom right)
+# Note: Coordinates of BoundingRect are based off of Quadrant IV
+#                                               (+ Bottom right)
 
 # Change booleans to enable or disable cetain functions
 # Note that corners will not be published if corresponding processing is False
+# Is another program really necessary?
+# You only change 4 variables:
+#     enableGUI
+#     videoDevice
+#     command/tags
+#     and the server
 printValues = True
 usingBoundingRect = True
 usingMinAreaRect = False
@@ -21,6 +27,10 @@ enableGUI = True
 # Video device assignment (Change accordingly)
 # (NEED TO CHANGE OS COMMAND BELOW AS WELL):
 videoDevice = 1
+
+command = 'v4l2-ctl'
+tags = '-d /dev/video1 -c exposure_auto=1 -c exposure_absolute=0'
+os_command = ' '.join(command, tags)
 
 # NetworkTables server assignment (Change accordingly):
 server = '127.0.0.1'
@@ -47,7 +57,7 @@ def publishData(pipeline):
         MIN_corner_c = []
         MIN_corner_d = []
 
-    # Find bounding rectangles of the contours to get variables
+    # Find the bounding rectangles of the contours
     for contour in pipeline.filter_contours_output:
 
         if usingBoundingRect:
@@ -57,7 +67,7 @@ def publishData(pipeline):
             x, y, w, h = cv2.boundingRect(contour)
 
             # (Technically) Extra processing for boundingRect variables
-            # X and Y are coordinates of top-left corner of bounding box
+            # Get X and Y coordinates of top-left corner of the bounding box
             center_x_positions.append(x + w / 2)
             center_y_positions.append(y + h / 2)
             widths.append(w)
@@ -118,8 +128,9 @@ def publishData(pipeline):
             print(angle_of_rotation)
 
         if publishingCornersMin:
-            tableMinCorners = (NetworkTables
-                               .getTable('/vision/minAreaRect/corners'))
+            tableMinCorners = NetworkTables.getTable(
+                    '/vision/minAreaRect/corners'
+                    )
             tableMinCorners.putNumberArray('MIN_corner_a', MIN_corner_a)
             tableMinCorners.putNumberArray('MIN_corner_b', MIN_corner_b)
             tableMinCorners.putNumberArray('MIN_corner_c', MIN_corner_c)
@@ -147,9 +158,7 @@ def main():
     cap = cv2.VideoCapture(videoDevice)
 
     # Change Exposure (***change video device as needed***):
-    os.system(
-            'v4l2-ctl -d /dev/video1 -c exposure_auto=1 -c exposure_absolute=0'
-            )
+    os.system(os_command)
 
     print('Creating Pipeline...')
     pipeline = GripPipeline()
@@ -168,7 +177,8 @@ def main():
 
             # Draw the normal contours (Green):
             cv2.drawContours(
-                    frame, pipeline.filter_contours_output,
+                    frame,
+                    pipeline.filter_contours_output,
                     -1, (0, 255, 0), thickness
                     )
 
@@ -180,8 +190,7 @@ def main():
                 boxCorners = cv2.boxPoints(minAreaRect_FULL)
 
                 # Numpy Conversion:
-                box = (numpy
-                       .array(boxCorners)
+                box = (numpy.array(boxCorners)
                        .reshape((-1, 1, 2))
                        .astype(numpy.int32))
 
@@ -191,7 +200,7 @@ def main():
                 # Normal Bounding Rectangle:
                 x, y, w, h = cv2.boundingRect(contour)
                 cv2.rectangle(frame, (x, y), (x+w, y+h),
-                              (255, 0, 0),  thickness)
+                              (255, 0, 0), thickness)
 
             # Show all data in a window:
             cv2.imshow('FRC Vision', frame)

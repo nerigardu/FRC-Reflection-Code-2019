@@ -8,10 +8,10 @@ import numpy
 import os
 
 # Note: Coordinates of BoundingRect are based off of Quadrant IV
-# (+ Bottom right)
+#                                               (+ Bottom right)
 
 # Change booleans to enable or disable cetain functions
-# Note that corners will not be published if corresponding processing is False)
+# Note that corners will not be published if corresponding processing is False
 printValues = True
 usingBoundingRect = True
 usingMinAreaRect = False
@@ -21,6 +21,12 @@ enableGUI = False
 # Video device assignment (Change accordingly)
 # (NEED TO CHANGE OS COMMAND BELOW AS WELL):
 videoDevice = 0
+
+# Is this the os command?
+# I brought it up so that it is by where it is first mentioned
+command = 'v4l2-ctl'
+tags = '-d /dev/video0 -c exposure_auto=1 -c exposure_absolute=0'
+os_command = ' '.join(command, tags)
 
 # NetworkTables server assignment (Change accordingly):
 server = 'roborio-3488-frc.local'
@@ -48,7 +54,6 @@ def publishData(pipeline):
         MIN_corner_d = []
 
     # Find the bounding rectangles of the contours
-    # to get variables for usage in robot code
     for contour in pipeline.filter_contours_output:
 
         if usingBoundingRect:
@@ -149,9 +154,7 @@ def main():
     cap = cv2.VideoCapture(videoDevice)
 
     # Change Exposure (***change video device as needed***):
-    os.system(
-            'v4l2-ctl -d /dev/video0 -c exposure_auto=1 -c exposure_absolute=0'
-            )
+    os.system(os_command)
 
     print('Creating Pipeline...')
     pipeline = GripPipeline()

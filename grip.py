@@ -100,6 +100,9 @@ class GripPipeline:
         Returns:
             A numpy.ndarray of the new size.
         """
+        # What are these zeroes for?
+        # Are they necessary?
+        # Consider adding more descriptive variable name
         return cv2.resize(
                 input, ((int)(width), (int)(height)),
                 0, 0, interpolation
@@ -116,10 +119,14 @@ class GripPipeline:
         Returns:
             A black and white numpy.ndarray.
         """
+        # What exactly is `out`?
         out = cv2.cvtColor(input, cv2.COLOR_BGR2HSV)
+        min_hue, max_hue = hue
+        min_sat, max_sat = sat
+        min_val, max_val = val
         return cv2.inRange(
-                out, (hue[0], sat[0], val[0]),
-                (hue[1], sat[1], val[1])
+                out, (min_hue, min_sat, min_val),
+                (max_hue, max_sat, max_val)
                 )
 
     @staticmethod
@@ -140,6 +147,8 @@ class GripPipeline:
         contours, hierarchy = cv2.findContours(input, mode=mode, method=method)
         return contours
 
+    # I still think this function needs editing,
+    # but it is probably an API/module call so not much we can do here.
     @staticmethod
     def __filter_contours(
             input_contours, min_area, min_perimeter,
@@ -168,9 +177,7 @@ class GripPipeline:
         output = []
         for contour in input_contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if (w < min_width or w > max_width):
-                continue
-            if (h < min_height or h > max_height):
+            if not (min_height <= (w or h) <= max_height):
                 continue
             area = cv2.contourArea(contour)
             if (area < min_area):
@@ -178,14 +185,17 @@ class GripPipeline:
             if (cv2.arcLength(contour, True) < min_perimeter):
                 continue
             hull = cv2.convexHull(contour)
+            # Why do they have min and max paramaters for each thing
+            # But then leave solidity as a list?
+            min_solidity, max_solidity = solidity
             solid = 100 * area / cv2.contourArea(hull)
-            if (solid < solidity[0] or solid > solidity[1]):
+            if not (min_solidity <= solid <= max_solidity):
                 continue
-            if (len(contour) < min_vertex_count
-                    or len(contour) > max_vertex_count):
+            vertex_count = len(contour)
+            if not (min_vertex_count <= vertex_count <= max_vertex_count):
                 continue
             ratio = (float)(w) / h
-            if (ratio < min_ratio or ratio > max_ratio):
+            if not (min_ratio <= ratio <= max_ratio):
                 continue
             output.append(contour)
         return output
